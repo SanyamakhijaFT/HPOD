@@ -122,12 +122,12 @@ const statusConfig = {
     color: 'bg-blue-100 text-blue-800 border-blue-200',
   },
   in_progress: {
-    label: 'In Progress',
-    icon: Play,
+    label: 'Picked Up',
+    icon: Package,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
   },
   pod_collected: {
-    label: 'Collected',
+    label: 'POD Collected',
     icon: CheckCircle,
     color: 'bg-green-100 text-green-800 border-green-200',
   },
@@ -180,9 +180,7 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
 
   // Find the current trip data from the allTrips array (which has the latest updates)
   const getLatestTripData = (tripId: string) => {
-    const latestTrip = allTrips.find(t => t.id === tripId);
-    console.log('AssignedTrips: Getting latest trip data for', tripId, ':', latestTrip?.status);
-    return latestTrip;
+    return allTrips.find(t => t.id === tripId);
   };
 
   if (filteredTrips.length === 0) {
@@ -210,8 +208,6 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
     );
   }
 
-  console.log('AssignedTrips: Rendering', filteredTrips.length, 'filtered trips');
-
   return (
     <>
       <div className="bg-white shadow rounded-lg">
@@ -231,7 +227,7 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
               >
                 <option value="">All Status</option>
                 <option value="assigned">Assigned</option>
-                <option value="in_progress">In Progress</option>
+                <option value="in_progress">Picked Up</option>
                 <option value="pod_collected">POD Collected</option>
                 <option value="couriered">Couriered</option>
               </select>

@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Loader2,
   FileText,
+  Package,
 } from 'lucide-react';
 import { Trip } from '../../types';
 
@@ -21,8 +22,8 @@ interface PODCollectionProps {
 
 const statusSteps = [
   { key: 'assigned', label: 'Assigned', icon: User },
-  { key: 'in_progress', label: 'In Progress', icon: Clock },
-  { key: 'pod_collected', label: 'Collected', icon: CheckCircle },
+  { key: 'in_progress', label: 'Picked Up', icon: Clock },
+  { key: 'pod_collected', label: 'POD Collected', icon: CheckCircle },
   { key: 'couriered', label: 'Couriered', icon: Truck },
 ];
 
@@ -58,7 +59,6 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
 
   // Update local state when trip prop changes
   useEffect(() => {
-    console.log('Trip prop changed:', trip);
     setUploadedFiles(trip.podImages || []);
     setCourierPartner(trip.courierPartner || '');
     setAwbNumber(trip.awbNumber || '');
@@ -83,10 +83,8 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
       
       setUploadedFiles(updatedFiles);
       
-      // Immediately update the trip with new images
+      // Update trip with new images
       onUpdateTrip(trip.id, { podImages: updatedFiles });
-      
-      console.log('Files uploaded:', updatedFiles);
     } catch (error) {
       console.error('Error uploading files:', error);
     } finally {
@@ -101,8 +99,6 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    console.log(`Changing status from ${trip.status} to ${newStatus}`);
-    
     setLoading(true);
     
     try {
@@ -116,7 +112,6 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
       // Add specific data based on the new status
       if (newStatus === 'pod_collected') {
         updates.podImages = uploadedFiles;
-        console.log('Adding POD images to update:', uploadedFiles);
       }
       
       if (newStatus === 'couriered') {
@@ -125,17 +120,9 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
         updates.courierDate = courierDate || new Date().toISOString().split('T')[0];
         updates.courierComments = courierComments;
         updates.podImages = uploadedFiles;
-        console.log('Adding courier details to update:', {
-          courierPartner,
-          awbNumber,
-          courierDate,
-          courierComments
-        });
       }
       
-      console.log('Calling onUpdateTrip with:', trip.id, updates);
       onUpdateTrip(trip.id, updates);
-      
     } catch (error) {
       console.error('Error updating trip status:', error);
     } finally {
@@ -159,7 +146,6 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
         }
       };
       
-      console.log('Reporting issue:', updates);
       onUpdateTrip(trip.id, updates);
       
       setShowIssueForm(false);
@@ -183,7 +169,6 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
         issueReported: undefined
       };
       
-      console.log('Resuming trip after issue resolution');
       onUpdateTrip(trip.id, updates);
     } catch (error) {
       console.error('Error resuming trip:', error);
@@ -193,14 +178,9 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
   };
 
   // Validation logic
-  const canStartTask = trip.status === 'assigned';
-  const canMarkCollected = trip.status === 'in_progress' && uploadedFiles.length > 0;
+  const canPickUp = trip.status === 'assigned';
+  const canCollectPOD = trip.status === 'in_progress' && uploadedFiles.length > 0;
   const canMarkCouriered = trip.status === 'pod_collected' && courierPartner && awbNumber;
-
-  console.log('Current trip status:', trip.status);
-  console.log('Can start task:', canStartTask);
-  console.log('Can mark collected:', canMarkCollected, 'Files:', uploadedFiles.length);
-  console.log('Can mark couriered:', canMarkCouriered, 'Courier:', courierPartner, 'AWB:', awbNumber);
 
   // If trip is completed (couriered), show completion message
   if (trip.status === 'couriered') {
@@ -321,14 +301,6 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
         </div>
       </div>
 
-      {/* Debug Info - Remove this in production */}
-      <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-        <div>Current Status: <strong>{trip.status}</strong></div>
-        <div>Files: {uploadedFiles.length}</div>
-        <div>Courier: {courierPartner || 'Not set'}</div>
-        <div>AWB: {awbNumber || 'Not set'}</div>
-      </div>
-
       {/* Dynamic Action Button */}
       <div className="mb-4 sm:mb-6">
         {trip.status === 'assigned' && (
@@ -340,16 +312,16 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
             {loading ? (
               <Loader2 className="animate-spin h-4 w-4 mr-2" />
             ) : (
-              <Play className="h-4 w-4 mr-2" />
+              <Package className="h-4 w-4 mr-2" />
             )}
-            {loading ? 'Starting...' : 'Start Task'}
+            {loading ? 'Picking Up...' : 'Pick Up Trip'}
           </button>
         )}
 
         {trip.status === 'in_progress' && (
           <button
             onClick={() => handleStatusChange('pod_collected')}
-            disabled={!canMarkCollected || loading}
+            disabled={!canCollectPOD || loading}
             className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
           >
             {loading ? (
@@ -357,7 +329,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
             ) : (
               <CheckCircle className="h-4 w-4 mr-2" />
             )}
-            {loading ? 'Marking...' : 'Mark as Collected'}
+            {loading ? 'Collecting...' : 'Mark POD Collected'}
           </button>
         )}
 
@@ -372,15 +344,20 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
             ) : (
               <Truck className="h-4 w-4 mr-2" />
             )}
-            {loading ? 'Marking...' : 'Mark as Couriered'}
+            {loading ? 'Couriering...' : 'Mark as Couriered'}
           </button>
         )}
       </div>
 
-      {/* Photo Upload Section */}
-      {(['in_progress', 'pod_collected'].includes(trip.status)) && (
+      {/* Proof of Receipt Upload Section - Only show after picking up */}
+      {trip.status === 'in_progress' && (
         <div className="mb-4 sm:mb-6">
-          <h4 className="text-sm font-medium text-gray-900 mb-3">POD Documents</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-3">
+            Proof of Receipt <span className="text-red-500">*</span>
+          </h4>
+          <p className="text-xs text-gray-600 mb-3">
+            Upload photos of the POD documents before marking as collected
+          </p>
           
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4">
             <div className="text-center">
@@ -388,7 +365,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
               <div className="mt-2">
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <span className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Upload files
+                    Upload photos
                   </span>
                   <input
                     id="file-upload"
@@ -396,7 +373,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
                     type="file"
                     className="sr-only"
                     multiple
-                    accept="image/*,.pdf"
+                    accept="image/*"
                     onChange={handleFileUpload}
                   />
                 </label>
@@ -407,7 +384,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, PDF up to 10MB
+                PNG, JPG up to 10MB each
               </p>
             </div>
           </div>
@@ -415,13 +392,13 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
           {uploading && (
             <div className="mt-2 flex items-center text-sm text-gray-600">
               <Loader2 className="animate-spin h-4 w-4 mr-2" />
-              Uploading files...
+              Uploading photos...
             </div>
           )}
 
           {uploadedFiles.length > 0 && (
             <div className="mt-4 space-y-2">
-              <h5 className="text-xs font-medium text-gray-700">Uploaded Files:</h5>
+              <h5 className="text-xs font-medium text-gray-700">Uploaded Photos:</h5>
               {uploadedFiles.map((file, index) => (
                 <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <div className="flex items-center min-w-0 flex-1">
@@ -439,15 +416,15 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
             </div>
           )}
 
-          {trip.status === 'in_progress' && uploadedFiles.length === 0 && (
+          {uploadedFiles.length === 0 && (
             <p className="text-xs text-red-600 mt-2">
-              Upload at least one document to mark as collected
+              Upload at least one photo to proceed
             </p>
           )}
         </div>
       )}
 
-      {/* Courier Details Section */}
+      {/* Courier Details Section - Only show after POD collected */}
       {trip.status === 'pod_collected' && (
         <div className="mb-4 sm:mb-6">
           <h4 className="text-sm font-medium text-gray-900 mb-3">Courier Details</h4>
@@ -455,7 +432,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Courier Partner *
+                Courier Partner <span className="text-red-500">*</span>
               </label>
               <select
                 value={courierPartner}
@@ -471,7 +448,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
             
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                AWB/Docket Number *
+                AWB/Docket Number <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -510,7 +487,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
 
           {(!courierPartner || !awbNumber) && (
             <p className="text-xs text-red-600 mt-2">
-              Fill courier partner and AWB number to mark as couriered
+              Fill courier partner and AWB number to proceed
             </p>
           )}
         </div>
@@ -533,7 +510,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
               
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Issue Type
+                  Issue Type <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={issueType}

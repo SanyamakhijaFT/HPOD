@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Play,
   CheckCircle,
@@ -56,6 +56,15 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
   const [issueDescription, setIssueDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Update local state when trip prop changes
+  useEffect(() => {
+    setUploadedFiles(trip.podImages || []);
+    setCourierPartner(trip.courierPartner || '');
+    setAwbNumber(trip.awbNumber || '');
+    setCourierDate(trip.courierDate || '');
+    setCourierComments(trip.courierComments || '');
+  }, [trip]);
+
   const currentStepIndex = statusSteps.findIndex(step => step.key === trip.status);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,16 +72,25 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
     if (!files) return;
 
     setUploading(true);
-    // Simulate file upload
-    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    const newFiles = Array.from(files).map(file => file.name);
-    const updatedFiles = [...uploadedFiles, ...newFiles];
-    setUploadedFiles(updatedFiles);
-    
-    // Update trip with new images
-    onUpdateTrip(trip.id, { podImages: updatedFiles });
-    setUploading(false);
+    try {
+      // Simulate file upload
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const newFiles = Array.from(files).map(file => file.name);
+      const updatedFiles = [...uploadedFiles, ...newFiles];
+      
+      setUploadedFiles(updatedFiles);
+      
+      // Immediately update the trip with new images
+      onUpdateTrip(trip.id, { podImages: updatedFiles });
+      
+      console.log('Files uploaded:', updatedFiles);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleRemoveFile = (fileName: string) => {
@@ -82,28 +100,41 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    console.log(`Changing status from ${trip.status} to ${newStatus}`);
+    
     setLoading(true);
     
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const updates: Partial<Trip> = { status: newStatus as Trip['status'] };
+      const updates: Partial<Trip> = { 
+        status: newStatus as Trip['status']
+      };
       
-      // Add courier details if marking as couriered
+      // Add specific data based on the new status
+      if (newStatus === 'pod_collected') {
+        updates.podImages = uploadedFiles;
+        console.log('Adding POD images to update:', uploadedFiles);
+      }
+      
       if (newStatus === 'couriered') {
         updates.courierPartner = courierPartner;
         updates.awbNumber = awbNumber;
         updates.courierDate = courierDate || new Date().toISOString().split('T')[0];
         updates.courierComments = courierComments;
-      }
-      
-      // Add POD images if marking as collected
-      if (newStatus === 'pod_collected') {
         updates.podImages = uploadedFiles;
+        console.log('Adding courier details to update:', {
+          courierPartner,
+          awbNumber,
+          courierDate,
+          courierComments
+        });
       }
       
+      console.log('Calling onUpdateTrip with:', trip.id, updates);
       onUpdateTrip(trip.id, updates);
+      
     } catch (error) {
       console.error('Error updating trip status:', error);
     } finally {
@@ -119,13 +150,16 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      onUpdateTrip(trip.id, {
+      const updates = {
         issueReported: {
           type: issueType,
           description: issueDescription || '',
           reportedAt: new Date().toISOString(),
         }
-      });
+      };
+      
+      console.log('Reporting issue:', updates);
+      onUpdateTrip(trip.id, updates);
       
       setShowIssueForm(false);
       setIssueType('');
@@ -144,9 +178,12 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Clear the issue and allow runner to continue
-      onUpdateTrip(trip.id, {
+      const updates = {
         issueReported: undefined
-      });
+      };
+      
+      console.log('Resuming trip after issue resolution');
+      onUpdateTrip(trip.id, updates);
     } catch (error) {
       console.error('Error resuming trip:', error);
     } finally {
@@ -154,8 +191,15 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
     }
   };
 
+  // Validation logic
+  const canStartTask = trip.status === 'assigned';
   const canMarkCollected = trip.status === 'in_progress' && uploadedFiles.length > 0;
   const canMarkCouriered = trip.status === 'pod_collected' && courierPartner && awbNumber;
+
+  console.log('Current trip status:', trip.status);
+  console.log('Can start task:', canStartTask);
+  console.log('Can mark collected:', canMarkCollected, 'Files:', uploadedFiles.length);
+  console.log('Can mark couriered:', canMarkCouriered, 'Courier:', courierPartner, 'AWB:', awbNumber);
 
   // If trip is completed (couriered), show completion message
   if (trip.status === 'couriered') {
@@ -274,6 +318,14 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
             );
           })}
         </div>
+      </div>
+
+      {/* Debug Info */}
+      <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+        <div>Current Status: <strong>{trip.status}</strong></div>
+        <div>Files: {uploadedFiles.length}</div>
+        <div>Courier: {courierPartner || 'Not set'}</div>
+        <div>AWB: {awbNumber || 'Not set'}</div>
       </div>
 
       {/* Dynamic Action Button */}

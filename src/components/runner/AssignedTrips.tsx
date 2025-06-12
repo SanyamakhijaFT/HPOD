@@ -23,6 +23,7 @@ import PODCollection from './PODCollection';
 
 interface AssignedTripsProps {
   trips: Trip[];
+  allTrips: Trip[];
   onUpdateTrip: (tripId: string, updates: Partial<Trip>) => void;
 }
 
@@ -150,6 +151,7 @@ const priorityConfig = {
 
 const AssignedTrips: React.FC<AssignedTripsProps> = ({
   trips,
+  allTrips,
   onUpdateTrip,
 }) => {
   const [showContactModal, setShowContactModal] = useState<string | null>(null);
@@ -176,10 +178,11 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
     setStatusFilter('');
   };
 
-  // Find the current trip data from the original trips array (not filtered)
-  // This ensures we get the most up-to-date trip data including status changes
+  // Find the current trip data from the allTrips array (which has the latest updates)
   const getLatestTripData = (tripId: string) => {
-    return trips.find(t => t.id === tripId);
+    const latestTrip = allTrips.find(t => t.id === tripId);
+    console.log('AssignedTrips: Getting latest trip data for', tripId, ':', latestTrip?.status);
+    return latestTrip;
   };
 
   if (filteredTrips.length === 0) {
@@ -206,6 +209,8 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
       </div>
     );
   }
+
+  console.log('AssignedTrips: Rendering', filteredTrips.length, 'filtered trips');
 
   return (
     <>
@@ -293,7 +298,7 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
                     </div>
 
                     <div className="flex flex-col items-end space-y-2 ml-2">
-                      {/* Only show status badge if no issue is reported */}
+                      {/* Show current status from latest trip data */}
                       {!trip.issueReported && statusInfo && (
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
                           <StatusIcon className="h-3 w-3 mr-1" />

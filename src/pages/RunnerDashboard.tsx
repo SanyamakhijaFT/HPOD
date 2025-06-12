@@ -14,26 +14,31 @@ const RunnerDashboard: React.FC = () => {
   
   // Initialize trips state with mock data
   const [trips, setTrips] = useState<Trip[]>(mockTrips);
-  
+
+  const handleUpdateTrip = (tripId: string, updates: Partial<Trip>) => {
+    console.log('RunnerDashboard: Updating trip:', tripId, 'with updates:', updates);
+    
+    setTrips(prevTrips => {
+      const updatedTrips = prevTrips.map(trip => {
+        if (trip.id === tripId) {
+          const updatedTrip = { ...trip, ...updates };
+          console.log('RunnerDashboard: Trip updated from', trip.status, 'to', updatedTrip.status);
+          return updatedTrip;
+        }
+        return trip;
+      });
+      
+      console.log('RunnerDashboard: All trips updated');
+      return updatedTrips;
+    });
+  };
+
   // Get all trips for the selected runner from current state
   const allRunnerTrips = trips.filter(trip => trip.runnerId === selectedRunner);
   
   // Separate active and completed trips
   const activeTrips = allRunnerTrips.filter(trip => trip.status !== 'delivered');
   const completedTrips = allRunnerTrips.filter(trip => trip.status === 'delivered');
-
-  const handleUpdateTrip = (tripId: string, updates: Partial<Trip>) => {
-    console.log('Updating trip:', tripId, 'with updates:', updates);
-    
-    setTrips(prevTrips => {
-      const updatedTrips = prevTrips.map(trip =>
-        trip.id === tripId ? { ...trip, ...updates } : trip
-      );
-      
-      console.log('Updated trips:', updatedTrips.find(t => t.id === tripId));
-      return updatedTrips;
-    });
-  };
 
   // Get runner names for filter dropdown
   const availableRunners = [
@@ -60,6 +65,8 @@ const RunnerDashboard: React.FC = () => {
   };
 
   const currentTrips = activeTab === 'active' ? activeTrips : completedTrips;
+
+  console.log('RunnerDashboard: Rendering with', currentTrips.length, 'trips for tab:', activeTab);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -138,6 +145,7 @@ const RunnerDashboard: React.FC = () => {
             {activeTab === 'active' ? (
               <AssignedTrips
                 trips={currentTrips}
+                allTrips={trips}
                 onUpdateTrip={handleUpdateTrip}
               />
             ) : (

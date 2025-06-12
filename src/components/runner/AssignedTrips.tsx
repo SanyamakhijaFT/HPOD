@@ -176,8 +176,11 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
     setStatusFilter('');
   };
 
-  // Find the current trip data for the expanded trip
-  const expandedTripData = expandedTrip ? trips.find(t => t.id === expandedTrip) : null;
+  // Find the current trip data from the original trips array (not filtered)
+  // This ensures we get the most up-to-date trip data including status changes
+  const getLatestTripData = (tripId: string) => {
+    return trips.find(t => t.id === tripId);
+  };
 
   if (filteredTrips.length === 0) {
     return (
@@ -245,6 +248,9 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
             const statusInfo = statusConfig[trip.status as keyof typeof statusConfig];
             const priorityInfo = priorityConfig[trip.priority];
             const StatusIcon = statusInfo?.icon || User;
+
+            // Get the latest trip data for the expanded view
+            const latestTripData = getLatestTripData(trip.id);
 
             return (
               <div key={trip.id} className={`border-l-4 ${priorityInfo.color}`}>
@@ -349,10 +355,10 @@ const AssignedTrips: React.FC<AssignedTripsProps> = ({
                 </div>
 
                 {/* Expanded POD Collection Flow */}
-                {isExpanded && expandedTripData && (
+                {isExpanded && latestTripData && (
                   <div className="border-t border-gray-200 p-4">
                     <PODCollection
-                      trip={expandedTripData}
+                      trip={latestTripData}
                       onUpdateTrip={onUpdateTrip}
                     />
                   </div>

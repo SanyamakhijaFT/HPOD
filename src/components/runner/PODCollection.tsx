@@ -58,6 +58,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
 
   // Update local state when trip prop changes
   useEffect(() => {
+    console.log('Trip prop changed:', trip);
     setUploadedFiles(trip.podImages || []);
     setCourierPartner(trip.courierPartner || '');
     setAwbNumber(trip.awbNumber || '');
@@ -320,7 +321,7 @@ const PODCollection: React.FC<PODCollectionProps> = ({ trip, onUpdateTrip }) => 
         </div>
       </div>
 
-      {/* Debug Info */}
+      {/* Debug Info - Remove this in production */}
       <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
         <div>Current Status: <strong>{trip.status}</strong></div>
         <div>Files: {uploadedFiles.length}</div>
